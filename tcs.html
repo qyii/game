@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>贪吃蛇</title>
+</head>
+<body>
+	<script src="js/tools.js"></script>
+	<script>
+		//这是地图呀
+		function Map(width,height){
+			this.width = width;
+			this.height = height;
+			this.elem = {};
+			this.food = {};
+			this.snake = {};
+		}
+		//初始化地图
+		Map.prototype.init = function(){
+			var divMap = this.elem = document.createElement("div");
+			css(divMap,{
+				width:this.width+"px",
+				height:this.height+"px",
+				position:"relative",
+				background:"#fea",
+				margin:"0 auto"
+			});
+			$("body")[0].appendChild(divMap);
+		}
+
+
+		//这是食物呀
+		function Food(width,height/*,map*/){
+			this.width = width;
+			this.height = height;
+			this.elem = {};
+			this.x = 0;
+			this.y = 0;
+			// this.map = map;
+			this.map = {};
+		}
+		//初始化食物
+		Food.prototype.init = function(){
+			var divFood = this.elem = document.createElement("div");
+			divFood.id = "myFood"
+			css(divFood,{
+				width:this.width+"px",
+				height:this.height+"px",
+				position:"absolute",
+				background:"#36a",
+				borderRadius:"50%",
+				left:this.x + "px",
+				top:this.y + "px"
+			});
+			this.map.elem.appendChild(divFood);
+		}
+		//显示食物
+		Food.prototype.show = function(){
+			// var divFood = $("#myFood");
+			//随机显示到地图中的某个格子里面
+			//求出有多少个格子
+			var gridx = this.map.width / this.width;
+			var gridy = this.map.height / this.height;
+			//取得x,y的随机坐标
+			this.x = Math.floor(Math.random()*gridx);
+			this.y = Math.floor(Math.random()*gridy);
+			//设置坐标
+			css(this.elem,{
+				left:this.x*this.width + "px",
+				top:this.y*this.height + "px"
+			})
+			// anime(divFood,{left:this.x,top:this.y},1000);
+		}
+
+		//这是蛇呀
+		function Snake(width,height){
+			this.width = width;
+			this.height = height;
+			this.body = [
+				{x:2,y:1,elem:{},bg:"#5da"},
+				{x:2,y:2,elem:{},bg:"#5da"},
+				{x:2,y:3,elem:{},bg:"#5da"},
+				{x:2,y:4,elem:{},bg:"#5da"},
+				{x:2,y:5,elem:{},bg:"#d46"} //这个当头
+			];
+			this.map = {};
+			this.survive = true; //判断蛇蛇是不是活着，初始是活着
+			this.direction = Direction.RIGHT; // 运动方向，默认向右运动
+		}
+
+		var Direction = {
+			LEFT:Symbol(),
+			RIGHT:Symbol(),
+			DOWN:Symbol(),
+			UP:Symbol()
+		};
+
+		//初始化蛇
+		Snake.prototype.init = function(){
+			var len = this.body.length;
+			//遍历身体
+			for(var i = 0;i<len;i++){
+				//创建div
+				// console.log(this.body[i].elem);
+				// 如果没有DOM就创建
+				if(!this.body[i].elem.style){
+					var bodyDiv = this.body[i].elem = document.createElement("div");
+					css(bodyDiv,{
+						width:this.width + "px",
+						height:this.height + "px",
+						position:"absolute",
+						background:this.body[i].bg,
+						left:this.body[i].x * this.width +"px",
+						top:this.body[i].y * this.height +"px"
+					});
+					if (i == len - 1) {
+						bodyDiv.innerHTML = "头";
+					}
+				}
+				this.map.elem.appendChild(bodyDiv);
+			}
+		}
+		//移动蛇蛇
+		Snake.prototype.move = function(){
+
+			//保存尾巴的位置0
+			var tailx = this.body[0].x;
+			var taily = this.body[0].y;
+
+			//先移动身体，让后一节的位置变成前一节位置
+			for(var i=0,len = this.body.length;i<len-1;i++){
+				this.body[i].x = this.body[i+1].x;
+				this.body[i].y = this.body[i+1].y;
+			}
+			//判断头向某个方向前进一下
+			if(this.direction === Direction.RIGHT){
+				this.body[i].x++;
+			}else if(this.direction === Direction.DOWN){
+				this.body[i].y++;
+			}else if(this.direction === Direction.LEFT){
+				this.body[i].x--;
+			}else if(this.direction === Direction.UP){
+				this.body[i].y--;
+			}
+
+			// 要是坐标和食物坐标一样就是吃到了食物
+			// 判断蛇头坐标是不是和食物一样
+			if(this.body[i].x == this.map.food.x && this.body[i].y == this.map.food.y){
+				// alert("吃了");
+				// 蛇要变长一节
+				this.body.unshift({x:tailx,y:taily,elem:{},bg:"#5da"});
+				this.init();
+
+				//重新生成食物
+				this.map.food.show();
+			}
+
+			//判断是不是吃到自己了
+			for(var i=0,len = this.body.length;i<len-1;i++){
+				if(this.body[len-1].x == this.body[i].x && this.body[len-1].y == this.body[i].y){
+					// alert("hhhh");
+					// 把survive置为false
+					this.survive = false;
+					return; // 结束执行
+				}
+			}
+
+			//判断边界，这个蛇可以穿墙
+			if(this.body[i].x<0){
+				this.body[i].x = this.map.width / this.width - 1;
+			}
+			if(this.body[i].x > this.map.width / this.width - 1){
+				this.body[i].x = 0;
+			}
+			if(this.body[i].y<0){
+				this.body[i].y = this.map.height / this.height - 1;
+			}
+			if(this.body[i].y > this.map.height / this.height - 1){
+				this.body[i].y = 0;
+			}
+
+			//进行css样式改变
+			for(var i in this.body){
+				anime(this.body[i].elem,{
+					left:this.body[i].x * this.width,
+					top:this.body[i].y * this.height
+				},1);
+			}
+		}
+		//改变蛇蛇方向
+		Snake.prototype.setDirection = function(code){
+			switch(code) { //根据键盘码改变方向
+				case 37:
+					this.direction = Direction.LEFT;
+					break;
+				case 38:
+					this.direction = Direction.UP;
+					break;
+				case 39:
+					this.direction = Direction.RIGHT;
+					break;
+				case 40:
+					this.direction = Direction.DOWN;
+			}
+		}
+
+
+		//创建地图实例
+		var map = new Map(600,600);
+		//创建食物实例
+		// var food = new Food(20,20,map);
+		var food = new Food(20,20);
+		//创建蛇的实例
+		var snake = new Snake(20,20);
+		//建立关联
+		food.map = map;
+		snake.map = map;
+		map.food = food;
+		map.snake = snake;
+
+		//调用初始化函数
+		map.init();
+		//调用初始化函数
+		food.init();
+		//调用初始化函数
+		snake.init();
+		//调用随机显示食物
+		food.show();
+
+		/*document.onclick = function(){
+			snake.move();
+		}*/
+		//按键按下时触发事件
+		document.onkeydown = function(e){
+			e = e || event;
+			var code = e.keyCode || e.which;
+			console.log(code);
+			snake.setDirection(code);//传入点击的按键码
+			if(snake.survive){
+				snake.move();
+			}
+		}
+
+		var timer = setInterval(function(){
+			snake.move();
+			if(!snake.survive){
+				alert("hhhhhhh你死了");
+				clearInterval(timer);
+			}
+		},60);
+
+	</script>
+</body>
+</html>
